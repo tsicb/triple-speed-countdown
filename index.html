@@ -1,0 +1,320 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#0b1220">
+  <title>倍速カウントダウンタイマー</title>
+  <style>
+    :root {
+      color-scheme: dark;
+      font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
+      --bg: #0b1220; --card: #162239; --line: #33445e;
+      --text: #f1f6ff; --muted: #bac9df; --accent: #80beff;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0; min-height: 100svh; padding: 20px;
+      display: grid; place-items: center;
+      background: radial-gradient(circle at 50% 0%, #233856, var(--bg) 68%);
+      color: var(--text);
+    }
+    main {
+      width: min(480px, 100%); padding: 32px 28px;
+      border: 1px solid var(--line); border-radius: 24px;
+      background: var(--card); box-shadow: 0 22px 70px #02071177;
+      text-align: center;
+    }
+    h1 { font-size: clamp(21px, 5vw, 27px); margin: 0 0 9px; }
+    .desc, .note { color: var(--muted); line-height: 1.65; font-size: 14px; }
+    .desc { margin: 0 0 22px; }
+    .setting-title { display: block; margin: 0 0 9px; color: var(--muted); font-size: 13px; }
+    .speed-switch { display: flex; gap: 5px; max-width: 262px; margin: 0 auto 17px;
+      background: #0c192b; border: 1px solid #48617e; border-radius: 14px; padding: 5px; }
+    .speed-switch button { flex: 1; padding: 10px; border: 0; border-radius: 10px;
+      background: transparent; color: var(--muted); font: 700 17px inherit;
+      font-family: inherit; font-size: 17px; cursor: pointer; }
+    .speed-switch button[aria-pressed="true"] { background: #3183e1; color: #fff; }
+    .timer { font-variant-numeric: tabular-nums; letter-spacing: .035em;
+      font-size: clamp(59px, 15vw, 90px); font-weight: 750; line-height: 1.3; margin: 2px 0; }
+    .status { min-height: 23px; margin: 0 0 17px; font-size: 14px; color: var(--muted); }
+    .bar { height: 9px; border-radius: 999px; background: #30415a; overflow: hidden; margin: 0 0 28px; }
+    .fill { height: 100%; width: 100%; border-radius: inherit;
+      background: linear-gradient(90deg, #48a0ff, #8ad7ff); }
+    .inputs { display: flex; align-items: end; justify-content: center; gap: 12px; margin: 0 0 23px; }
+    .inputs label { display: flex; flex-direction: column; gap: 7px; text-align: left;
+      color: var(--muted); font-size: 13px; }
+    .inputs input { width: 108px; padding: 11px 13px; border-radius: 10px;
+      border: 1px solid #526d91; background: #0e1a2d; color: white;
+      font: 23px system-ui, sans-serif; font-variant-numeric: tabular-nums; text-align: center; }
+    .inputs input:disabled { opacity: .56; cursor: not-allowed; }
+    .colon { font-size: 26px; margin-bottom: 12px; }
+    .buttons { display: flex; gap: 10px; }
+    .buttons button { flex: 1; padding: 14px 8px; border: 1px solid #526783;
+      border-radius: 12px; background: #2b3e58; color: #fff;
+      font: 700 16px system-ui, sans-serif; cursor: pointer; }
+    .buttons .primary { background: #3183e1; border-color: #3183e1; }
+    button:focus-visible, input:focus-visible { outline: 3px solid #bfddff; outline-offset: 3px; }
+    button:hover { filter: brightness(1.13); }
+    .sound-button { margin: 18px auto 0; padding: 10px 17px;
+      border: 1px solid #526783; border-radius: 999px;
+      background: #233650; color: var(--text); font: 14px system-ui, sans-serif; cursor: pointer; }
+    .sound-button[aria-pressed="false"] { color: var(--muted); }
+    .note { margin: 13px 0 0; min-height: 23px; }
+    .done .timer { color: #96d7ff; }
+    @media (max-width: 380px) { main { padding: 24px 16px; } .inputs input { width: 92px; } }
+    @media (prefers-reduced-motion: reduce) { *, *::before, *::after { transition: none !important; } }
+  </style>
+</head>
+<body>
+  <main id="panel">
+    <h1>倍速カウントダウン</h1>
+    <p class="desc">実時間と3倍速を、いつでも切り替えられます。</p>
+
+    <span class="setting-title" id="speedLabel">カウントダウン速度</span>
+    <div class="speed-switch" role="group" aria-labelledby="speedLabel">
+      <button id="speed1" type="button" aria-pressed="false">1倍速</button>
+      <button id="speed3" type="button" aria-pressed="true">3倍速</button>
+    </div>
+
+    <div id="display" class="timer" role="timer" aria-label="残り5分">05:00</div>
+    <p id="status" class="status" role="status" aria-live="polite">準備完了・3倍速</p>
+    <div id="progress" class="bar" role="progressbar" aria-label="残り時間の割合" aria-valuemin="0" aria-valuemax="100" aria-valuenow="100">
+      <div id="fill" class="fill"></div>
+    </div>
+
+    <div class="inputs">
+      <label for="minutes">分<input id="minutes" type="number" min="0" max="999" step="1" value="5" inputmode="numeric"></label>
+      <div class="colon" aria-hidden="true">:</div>
+      <label for="seconds">秒<input id="seconds" type="number" min="0" max="59" step="1" value="0" inputmode="numeric"></label>
+    </div>
+    <div class="buttons">
+      <button id="start" class="primary" type="button">スタート</button>
+      <button id="reset" type="button">リセット</button>
+    </div>
+    <button id="sound" class="sound-button" type="button" aria-pressed="true">♪ 終了音：ON</button>
+    <p class="note" id="realTime">設定5分00秒 → 実時間1分40秒で終了</p>
+  </main>
+
+  <script>
+    (() => {
+      'use strict';
+      const $ = (id) => document.getElementById(id);
+      const minutes = $('minutes');
+      const seconds = $('seconds');
+      const display = $('display');
+      const status = $('status');
+      const progress = $('progress');
+      const fill = $('fill');
+      const start = $('start');
+      const reset = $('reset');
+      const speed1 = $('speed1');
+      const speed3 = $('speed3');
+      const soundButton = $('sound');
+      const realTime = $('realTime');
+      const panel = $('panel');
+
+      let speed = 3;
+      let soundOn = true;
+      let initial = 300;
+      let remaining = 300;
+      let running = false;
+      let started = false;
+      let lastTick = 0;
+      let frame = 0;
+      let finishTimeout = 0;
+      let audioContext = null;
+
+      function clamp(value, max) {
+        const n = Number(value);
+        return Number.isFinite(n) ? Math.max(0, Math.min(max, Math.floor(n))) : 0;
+      }
+      function inputSeconds() { return clamp(minutes.value, 999) * 60 + clamp(seconds.value, 59); }
+      function formatTime(value) {
+        const n = Math.max(0, Math.ceil(value - 1e-8));
+        return String(Math.floor(n / 60)).padStart(2, '0') + ':' + String(n % 60).padStart(2, '0');
+      }
+      function spokenTime(value) {
+        const n = Math.max(0, Math.ceil(value - 1e-8));
+        return Math.floor(n / 60) + '分' + String(n % 60).padStart(2, '0') + '秒';
+      }
+      function render() {
+        display.textContent = formatTime(remaining);
+        display.setAttribute('aria-label', '残り' + spokenTime(remaining));
+        const percent = initial ? Math.max(0, Math.min(100, remaining / initial * 100)) : 0;
+        fill.style.width = percent + '%';
+        progress.setAttribute('aria-valuenow', String(Math.round(percent)));
+        realTime.textContent = (running || started ? '残り' : '設定') + spokenTime(running || started ? remaining : initial)
+          + ' → 実時間 約' + spokenTime(remaining / speed);
+      }
+      function setStatus() {
+        status.textContent = running ? speed + '倍速でカウントダウン中'
+          : started && remaining > 0 ? '一時停止中・' + speed + '倍速'
+          : '準備完了・' + speed + '倍速';
+      }
+      function setInputsDisabled(disabled) {
+        minutes.disabled = disabled;
+        seconds.disabled = disabled;
+      }
+      function cancelTimers() {
+        cancelAnimationFrame(frame);
+        clearTimeout(finishTimeout);
+        frame = 0;
+        finishTimeout = 0;
+      }
+      function configure(normalize = false) {
+        if (running || (started && remaining > 0)) return;
+        if (normalize) {
+          minutes.value = String(clamp(minutes.value, 999));
+          seconds.value = String(clamp(seconds.value, 59));
+        }
+        initial = inputSeconds();
+        remaining = initial;
+        started = false;
+        panel.classList.remove('done');
+        start.textContent = 'スタート';
+        setStatus();
+        render();
+      }
+      function primeAudio() {
+        if (!soundOn) return;
+        try {
+          const Context = window.AudioContext || window.webkitAudioContext;
+          if (!Context) return;
+          if (!audioContext) audioContext = new Context();
+          if (audioContext.state === 'suspended') audioContext.resume().catch(() => {});
+        } catch (error) {
+          console.warn('音声の初期化に失敗しました', error);
+        }
+      }
+      function playFinishSound() {
+        if (!soundOn || !audioContext) return;
+        try {
+          const play = () => {
+            const now = audioContext.currentTime;
+            [880, 1174.66, 1568].forEach((frequency, index) => {
+              const oscillator = audioContext.createOscillator();
+              const volume = audioContext.createGain();
+              const at = now + index * 0.19;
+              oscillator.type = 'sine';
+              oscillator.frequency.setValueAtTime(frequency, at);
+              volume.gain.setValueAtTime(0.0001, at);
+              volume.gain.exponentialRampToValueAtTime(0.19, at + 0.018);
+              volume.gain.exponentialRampToValueAtTime(0.0001, at + 0.44);
+              oscillator.connect(volume);
+              volume.connect(audioContext.destination);
+              oscillator.start(at);
+              oscillator.stop(at + 0.46);
+            });
+          };
+          if (audioContext.state === 'suspended') audioContext.resume().then(play).catch(() => {});
+          else play();
+        } catch (error) {
+          console.warn('終了音を再生できませんでした', error);
+        }
+      }
+      function finish() {
+        if (!running) return;
+        cancelTimers();
+        running = false;
+        started = false;
+        remaining = 0;
+        panel.classList.add('done');
+        setInputsDisabled(false);
+        start.textContent = 'もう一度スタート';
+        status.textContent = '時間になりました！';
+        render();
+        playFinishSound();
+      }
+      // performance.now() の差分で計算。速度変更直前は旧速度で精算する。
+      function accountForElapsed() {
+        if (!running) return false;
+        const now = performance.now();
+        remaining = Math.max(0, remaining - Math.max(0, now - lastTick) / 1000 * speed);
+        lastTick = now;
+        if (remaining <= 0) {
+          finish();
+          return false;
+        }
+        return true;
+      }
+      // 非表示タブで描画が止まっても、終了判定のタイマーは継続する。
+      function scheduleFinish() {
+        clearTimeout(finishTimeout);
+        if (!running) return;
+        finishTimeout = setTimeout(() => {
+          if (accountForElapsed()) {
+            render();
+            scheduleFinish(); // 背景タブのタイマー遅延に対応
+          }
+        }, Math.max(1, Math.ceil(remaining / speed * 1000)));
+      }
+      function animate() {
+        if (!accountForElapsed()) return;
+        render();
+        frame = requestAnimationFrame(animate);
+      }
+      function switchSpeed(value) {
+        if (speed === value) return;
+        // 先に現在までの経過分を旧速度で差し引いてから切り替える。
+        if (running) accountForElapsed();
+        speed = value;
+        speed1.setAttribute('aria-pressed', String(speed === 1));
+        speed3.setAttribute('aria-pressed', String(speed === 3));
+        if (running) scheduleFinish();
+        if (remaining > 0) setStatus();
+        render();
+      }
+      function toggle() {
+        if (running) {
+          if (!accountForElapsed()) return;
+          running = false;
+          cancelTimers();
+          start.textContent = '再開';
+          setStatus();
+          render();
+          return;
+        }
+        if (remaining <= 0) configure(true);
+        if (remaining <= 0) {
+          status.textContent = '1秒以上の時間を設定してください';
+          return;
+        }
+        primeAudio(); // ユーザーのクリック操作中に音声を有効化
+        running = true;
+        started = true;
+        panel.classList.remove('done');
+        lastTick = performance.now();
+        start.textContent = '一時停止';
+        setInputsDisabled(true);
+        setStatus();
+        scheduleFinish();
+        frame = requestAnimationFrame(animate);
+      }
+      function restart() {
+        running = false;
+        started = false;
+        cancelTimers();
+        setInputsDisabled(false);
+        configure(true);
+      }
+
+      minutes.addEventListener('input', () => configure());
+      seconds.addEventListener('input', () => configure());
+      minutes.addEventListener('change', () => configure(true));
+      seconds.addEventListener('change', () => configure(true));
+      speed1.addEventListener('click', () => switchSpeed(1));
+      speed3.addEventListener('click', () => switchSpeed(3));
+      start.addEventListener('click', toggle);
+      reset.addEventListener('click', restart);
+      soundButton.addEventListener('click', () => {
+        soundOn = !soundOn;
+        soundButton.setAttribute('aria-pressed', String(soundOn));
+        soundButton.textContent = '♪ 終了音：' + (soundOn ? 'ON' : 'OFF');
+        if (soundOn) primeAudio();
+      });
+      configure(true);
+    })();
+  </script>
+</body>
+</html>
