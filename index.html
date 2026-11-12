@@ -77,23 +77,23 @@
       <button id="speed3" type="button" aria-pressed="true">3倍速</button>
     </div>
 
-    <div id="display" class="timer" role="timer" aria-label="残り5分">05:00</div>
+    <div id="display" class="timer" role="timer" aria-label="残り30秒">00:30</div>
     <p id="status" class="status" role="status" aria-live="polite">準備完了・3倍速</p>
     <div id="progress" class="bar" role="progressbar" aria-label="残り時間の割合" aria-valuemin="0" aria-valuemax="100" aria-valuenow="100">
       <div id="fill" class="fill"></div>
     </div>
 
     <div class="inputs">
-      <label for="minutes">分<input id="minutes" type="number" min="0" max="999" step="1" value="5" inputmode="numeric"></label>
+      <label for="minutes">分<input id="minutes" type="number" min="0" max="999" step="1" value="0" inputmode="numeric"></label>
       <div class="colon" aria-hidden="true">:</div>
-      <label for="seconds">秒<input id="seconds" type="number" min="0" max="59" step="1" value="0" inputmode="numeric"></label>
+      <label for="seconds">秒<input id="seconds" type="number" min="0" max="59" step="1" value="30" inputmode="numeric"></label>
     </div>
     <div class="buttons">
       <button id="start" class="primary" type="button">スタート</button>
       <button id="reset" type="button">リセット</button>
     </div>
     <button id="sound" class="sound-button" type="button" aria-pressed="true">♪ 終了音：ON</button>
-    <p class="note" id="realTime">設定5分00秒 → 実時間1分40秒で終了</p>
+    <p class="note" id="realTime">設定0分30秒 → 実時間0分10秒で終了</p>
   </main>
 
   <script>
@@ -116,8 +116,8 @@
 
       let speed = 3;
       let soundOn = true;
-      let initial = 300;
-      let remaining = 300;
+      let initial = 30;
+      let remaining = 30;
       let running = false;
       let started = false;
       let lastTick = 0;
